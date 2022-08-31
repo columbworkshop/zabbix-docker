@@ -2,6 +2,8 @@ version: '3.5'
 services:
  zabbix-server:
   image: zabbix/zabbix-server-mysql:alpine-6.2-latest
+  container_name: zabbix-server
+  restart: unless-stopped  
   ports:
    - "10051:10051"
   volumes:
@@ -41,14 +43,6 @@ services:
 #   - root-ca.pem
   depends_on:
    - mysql-server
-  networks:
-   zbx_net_backend:
-     aliases:
-      - zabbix-server
-      - zabbix-server-mysql
-      - zabbix-server-alpine-mysql
-      - zabbix-server-mysql-alpine
-   zbx_net_frontend:
 #  devices:
 #   - "/dev/ttyUSB0:/dev/ttyUSB0"
   stop_grace_period: 30s
@@ -66,8 +60,10 @@ services:
 
  zabbix-web-nginx-mysql:
   image: zabbix/zabbix-web-nginx-mysql:alpine-6.2-latest
-  ports:
-   - "8081:8080"
+  container_name: zabbix-web
+  restart: unless-stopped
+#  ports:
+#   - "8081:8080"
 #   - "443:8443"
   volumes:
    - /etc/localtime:/etc/localtime:ro
@@ -100,13 +96,6 @@ services:
    timeout: 5s
    retries: 3
    start_period: 30s
-  networks:
-   zbx_net_backend:
-    aliases:
-     - zabbix-web-nginx-mysql
-     - zabbix-web-nginx-alpine-mysql
-     - zabbix-web-nginx-mysql-alpine
-   zbx_net_frontend:
   stop_grace_period: 10s
   sysctls:
    - net.core.somaxconn=65535
@@ -120,6 +109,8 @@ services:
 
  mysql-server:
   image: mysql:8.0-oracle
+  container_name: zabbix-mysql
+  restart: unless-stopped
   command:
    - mysqld
    - --character-set-server=utf8mb4
@@ -142,39 +133,22 @@ services:
 #   - server-cert.pem
 #   - root-ca.pem
   stop_grace_period: 1m
-  networks:
-   zbx_net_backend:
-    aliases:
-     - mysql-server
-     - zabbix-database
-     - mysql-database
 
  db_data_mysql:
   image: busybox
+  container_name: zabbix-mysql-data
   volumes:
    - ./zbx_env/var/lib/mysql:/var/lib/mysql:rw
 
-networks:
-  zbx_net_frontend:
-    driver: bridge
-    driver_opts:
-      com.docker.network.enable_ipv6: "false"
-    ipam:
-      driver: default
-      config:
-      - subnet: 172.16.238.0/24
-  zbx_net_backend:
-    driver: bridge
-    driver_opts:
-      com.docker.network.enable_ipv6: "false"
-    internal: true
-    ipam:
-      driver: default
-      config:
-      - subnet: 172.16.239.0/24
+networks: 
+  default: 
+    external: 
+      name: common
+
 
 volumes:
   snmptraps:
+
 
 secrets:
   MYSQL_USER:
